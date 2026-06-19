@@ -37,12 +37,16 @@ class ZotFlowAutoSync {
   // ── Startup / shutdown ────────────────────────────────────────────────────
 
   async startup() {
-    this._vaultPath = await this._findVaultPath();
+    this._vaultPath = await this._resolveVaultPath();
     if (!this._vaultPath) {
-      Zotero.log("[ZotFlowAutoSync] Could not find Obsidian vault — plugin inactive.");
+      Zotero.log(
+        "[ZotFlowAutoSync] No vault path set. " +
+        "Set extensions.zotflow-autosync.vaultPath in the Config Editor " +
+        "(Edit → Preferences → Advanced → Config Editor)."
+      );
       return;
     }
-    await this._loadSettings();
+    this._noteFolder = this._resolveNoteFolder();
 
     this._notifierID = Zotero.Notifier.registerObserver(
       { notify: this._onNotify.bind(this) },
@@ -50,7 +54,8 @@ class ZotFlowAutoSync {
       "ZotFlowAutoSync"
     );
 
-    Zotero.log("[ZotFlowAutoSync] Started. Vault: " + this._vaultPath);
+    Zotero.log("[ZotFlowAutoSync] Started. Vault: " + this._vaultPath +
+               "  Folder: " + this._noteFolder);
   }
 
   shutdown() {
@@ -65,37 +70,57 @@ class ZotFlowAutoSync {
 
   // ── Init helpers ──────────────────────────────────────────────────────────
 
-  async _findVaultPath() {
-    try {
-      const home = Services.dirsvc.get("Home", Ci.nsIFile).path;
-      const cfgPath = PathUtils.join(
-        home, "Library", "Application Support", "obsidian", "obsidian.json"
-      );
-      const raw = await IOUtils.readUTF8(cfgPath);
-      const cfg = JSON.parse(raw);
-      const vaults = Object.values(cfg.vaults || {});
-      const active = vaults.find(v => v.open) || vaults[0];
-      return active?.path || null;
-    } catch (e) {
-      Zotero.log("[ZotFlowAutoSync] Obsidian config unreadable: " + e);
-      return null;
+  // Pref keys
+  static PREF_VAULT   = "extensions.zotflow-autosync.vaultPath";
+  static PREF_FOLDER  = "extensions.zotflow-autosync.noteFolder";
+  static DEFAULT_FOLDER = "archive/@";
+
+  async _resolveVaultPath() {
+    const stored = Zotero.Prefs.get(ZotFlowAutoSync.PREF_VAULT, true);
+    if (stored) return stored;
+
+    // First-run: try to discover from Obsidian's own config
+    const discovered = await this._discoverVaultPath();
+    if (discovered) {
+      Zotero.Prefs.set(ZotFlowAutoSync.PREF_VAULT, discovered, true);
+      Zotero.log("[ZotFlowAutoSync] Vault auto-discovered and saved to prefs: " + discovered);
     }
+    return discovered;
   }
 
-  async _loadSettings() {
-    try {
-      const p = PathUtils.join(
-        this._vaultPath, ".obsidian", "plugins", "zotflow", "data.json"
-      );
-      const raw = await IOUtils.readUTF8(p);
-      this._settings = JSON.parse(raw).settings || {};
-    } catch (_) {
-      this._settings = {};
+  async _discoverVaultPath() {
+    // Obsidian writes a registry file in a platform-specific location.
+    // We try known paths; on Linux/Windows this will simply not find a file
+    // and return null cleanly.
+    const home = Services.dirsvc.get("Home", Ci.nsIFile).path;
+    const candidates = [
+      // macOS
+      PathUtils.join(home, "Library", "Application Support", "obsidian", "obsidian.json"),
+      // Linux
+      PathUtils.join(home, ".config", "obsidian", "obsidian.json"),
+      // Windows (APPDATA via env — falls back to null if undefined)
+      Services.env.get("APPDATA")
+        ? PathUtils.join(Services.env.get("APPDATA"), "obsidian", "obsidian.json")
+        : null,
+    ].filter(Boolean);
+
+    for (const cfgPath of candidates) {
+      try {
+        const raw = await IOUtils.readUTF8(cfgPath);
+        const cfg = JSON.parse(raw);
+        const vaults = Object.values(cfg.vaults || {});
+        const active = vaults.find(v => v.open) || vaults[0];
+        if (active?.path) return active.path;
+      } catch (_) {
+        // not found on this platform, try next
+      }
     }
-    // Default matching ZotFlow's default config
-    if (!this._settings.sourceNoteFolder) {
-      this._settings.sourceNoteFolder = "archive/@";
-    }
+    return null;
+  }
+
+  _resolveNoteFolder() {
+    const stored = Zotero.Prefs.get(ZotFlowAutoSync.PREF_FOLDER, true);
+    return stored || ZotFlowAutoSync.DEFAULT_FOLDER;
   }
 
   // ── Notifier ──────────────────────────────────────────────────────────────
@@ -160,7 +185,7 @@ class ZotFlowAutoSync {
 
   _resolveFilePath(item) {
     const citeKey = this._citeKey(item);
-    const folder = PathUtils.join(this._vaultPath, this._settings.sourceNoteFolder);
+    const folder = PathUtils.join(this._vaultPath, this._noteFolder);
     return PathUtils.join(folder, "@" + citeKey + ".md");
   }
 

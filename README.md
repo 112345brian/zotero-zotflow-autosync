@@ -35,8 +35,18 @@ Confirm it appears in **Tools → Add-ons** as *ZotFlow Auto-Sync*.
 
 Repeat the installation steps with the new XPI from the releases page.
 
+## Configuration
+
+Settings are stored in Zotero's preference system. Open the Config Editor via **Edit → Preferences → Advanced → Config Editor** and search for `zotflow-autosync`.
+
+| Pref key | Default | Description |
+|---|---|---|
+| `extensions.zotflow-autosync.vaultPath` | auto-discovered | Absolute path to your Obsidian vault |
+| `extensions.zotflow-autosync.noteFolder` | `archive/@` | Folder inside the vault where ZotFlow puts source notes |
+
+On first startup the plugin tries to discover your vault automatically from Obsidian's registry file (works on macOS, Linux, and Windows). If discovery fails, or you want to use a different vault, set `vaultPath` manually in the Config Editor.
+
 ## Notes
 
-- The plugin reads your Obsidian vault path from `~/Library/Application Support/obsidian/obsidian.json` automatically
-- It reads ZotFlow's configured `sourceNoteFolder` from your vault's `data.json`; defaults to `archive/@` if unreadable
-- Zotero debug output is logged under the tag `[ZotFlowAutoSync]` (open via **Help → Debug Output Logging**)
+- Zotero debug output is tagged `[ZotFlowAutoSync]` — open via **Help → Debug Output Logging**
+- The plugin only **updates** existing files; ZotFlow still handles first-time creation
