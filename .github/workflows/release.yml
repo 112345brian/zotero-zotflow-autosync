@@ -15,17 +15,41 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set version from tag
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Stamp version into manifest
-          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" manifest.json
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Stamp version into manifest
+        run: sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" manifest.json
 
       - name: Build XPI
         run: zip -j zotflow-autosync.xpi manifest.json bootstrap.js
 
+      - name: Build updates.json
+        run: |
+          cat > updates.json <<EOF
+          {
+            "addons": {
+              "zotflow-autosync@local": {
+                "updates": [
+                  {
+                    "version": "$VERSION",
+                    "update_link": "https://github.com/112345brian/zotero-zotflow-autosync/releases/download/v$VERSION/zotflow-autosync.xpi",
+                    "applications": {
+                      "zotero": {
+                        "strict_min_version": "7.0",
+                        "strict_max_version": "10.*"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+          EOF
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: zotflow-autosync.xpi
+          files: |
+            zotflow-autosync.xpi
+            updates.json
           generate_release_notes: true
