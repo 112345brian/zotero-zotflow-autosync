@@ -25,22 +25,15 @@ Zotero's annotations are the source of truth. When you later run ZotFlow's manua
 
 ## Installation
 
-```bash
-git clone https://github.com/112345brian/zotero-zotflow-autosync
-cd zotero-zotflow-autosync
+1. Download `zotflow-autosync.xpi` from the [latest release](https://github.com/112345brian/zotero-zotflow-autosync/releases/latest)
+2. In Zotero: **Tools → Add-ons → gear icon → Install Add-on From File…**
+3. Select the downloaded XPI and restart Zotero
 
-# Quit Zotero first, then:
-./install.sh
-```
-
-Restart Zotero and accept the add-on install prompt. Confirm it appears in **Tools → Add-ons** as *ZotFlow Auto-Sync*.
+Confirm it appears in **Tools → Add-ons** as *ZotFlow Auto-Sync*.
 
 ## Updating
 
-```bash
-git pull
-./install.sh   # quit Zotero first
-```
+Repeat the installation steps with the new XPI from the releases page.
 
 ## Notes
 
