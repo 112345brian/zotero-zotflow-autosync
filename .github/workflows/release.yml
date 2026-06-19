@@ -25,26 +25,28 @@ jobs:
 
       - name: Build updates.json
         run: |
-          cat > updates.json <<EOF
-          {
-            "addons": {
-              "zotflow-autosync@local": {
-                "updates": [
-                  {
-                    "version": "$VERSION",
-                    "update_link": "https://github.com/112345brian/zotero-zotflow-autosync/releases/download/v$VERSION/zotflow-autosync.xpi",
-                    "applications": {
-                      "zotero": {
-                        "strict_min_version": "7.0",
-                        "strict_max_version": "10.*"
-                      }
+          python3 -c "
+          import json, os
+          v = os.environ['VERSION']
+          data = {
+            'addons': {
+              'zotflow-autosync@local': {
+                'updates': [{
+                  'version': v,
+                  'update_link': f'https://github.com/112345brian/zotero-zotflow-autosync/releases/download/v{v}/zotflow-autosync.xpi',
+                  'applications': {
+                    'zotero': {
+                      'strict_min_version': '7.0',
+                      'strict_max_version': '10.*'
                     }
                   }
-                ]
+                }]
               }
             }
           }
-          EOF
+          print(json.dumps(data, indent=2))
+          " > updates.json
+          cat updates.json
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
