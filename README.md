@@ -1,6 +1,6 @@
 # ZotFlow Auto-Sync
 
-A Zotero 7 plugin that automatically updates your [ZotFlow](https://github.com/duanxianpi/zotflow) Obsidian vault files the moment you add or edit an annotation in Zotero — no manual sync required.
+A Zotero plugin that automatically updates your [ZotFlow](https://github.com/duanxianpi/zotflow) Obsidian vault files the moment you add or edit an annotation in Zotero — no manual sync required.
 
 ## The problem
 
@@ -19,7 +19,7 @@ Zotero's annotations are the source of truth. When you later run ZotFlow's manua
 
 ## Requirements
 
-- Zotero 7
+- Zotero 7–9 (tested on 9)
 - [ZotFlow](https://github.com/duanxianpi/zotflow) Obsidian plugin (already configured and synced at least once per item)
 - [Better BibTeX](https://retorque.re/zotero-better-bibtex/) (recommended, for stable citekey-based filenames)
 
