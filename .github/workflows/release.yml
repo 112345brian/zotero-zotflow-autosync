@@ -18,35 +18,46 @@ jobs:
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
       - name: Stamp version into manifest
-        run: sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" manifest.json
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, re
+          v = os.environ["VERSION"]
+          txt = open("manifest.json").read()
+          txt = re.sub(r'"version": "[^"]*"', f'"version": "{v}"', txt, count=1)
+          open("manifest.json", "w").write(txt)
+          PYEOF
 
       - name: Build XPI
         run: zip -j zotflow-autosync.xpi manifest.json bootstrap.js
 
       - name: Build updates.json
         run: |
-          python3 -c "
+          python3 - <<'PYEOF'
           import json, os
-          v = os.environ['VERSION']
+          v = os.environ["VERSION"]
           data = {
-            'addons': {
-              'zotflow-autosync@local': {
-                'updates': [{
-                  'version': v,
-                  'update_link': f'https://github.com/112345brian/zotero-zotflow-autosync/releases/download/v{v}/zotflow-autosync.xpi',
-                  'applications': {
-                    'zotero': {
-                      'strict_min_version': '7.0',
-                      'strict_max_version': '10.*'
+            "addons": {
+              "zotflow-autosync@local": {
+                "updates": [{
+                  "version": v,
+                  "update_link": (
+                    "https://github.com/112345brian/zotero-zotflow-autosync"
+                    f"/releases/download/v{v}/zotflow-autosync.xpi"
+                  ),
+                  "applications": {
+                    "zotero": {
+                      "strict_min_version": "7.0",
+                      "strict_max_version": "10.*"
                     }
                   }
                 }]
               }
             }
           }
-          print(json.dumps(data, indent=2))
-          " > updates.json
-          cat updates.json
+          with open("updates.json", "w") as f:
+            json.dump(data, f, indent=2)
+          print("Wrote updates.json")
+          PYEOF
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
