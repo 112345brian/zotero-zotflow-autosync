@@ -76,16 +76,14 @@ class ZotFlowAutoSync {
   static DEFAULT_FOLDER = "archive/@";
 
   async _resolveVaultPath() {
-    const stored = Zotero.Prefs.get(ZotFlowAutoSync.PREF_VAULT, true);
-    if (stored) return stored;
-
-    // First-run: try to discover from Obsidian's own config
-    const discovered = await this._discoverVaultPath();
-    if (discovered) {
-      Zotero.Prefs.set(ZotFlowAutoSync.PREF_VAULT, discovered, true);
-      Zotero.log("[ZotFlowAutoSync] Vault auto-discovered and saved to prefs: " + discovered);
+    let path = Zotero.Prefs.get(ZotFlowAutoSync.PREF_VAULT, true) || "";
+    if (!path) {
+      path = (await this._discoverVaultPath()) || "";
+      if (path) Zotero.log("[ZotFlowAutoSync] Vault auto-discovered: " + path);
     }
-    return discovered;
+    // Always write so the key appears in Config Editor (Edit → Preferences → Advanced → Config Editor)
+    Zotero.Prefs.set(ZotFlowAutoSync.PREF_VAULT, path, true);
+    return path || null;
   }
 
   async _discoverVaultPath() {
@@ -119,8 +117,11 @@ class ZotFlowAutoSync {
   }
 
   _resolveNoteFolder() {
-    const stored = Zotero.Prefs.get(ZotFlowAutoSync.PREF_FOLDER, true);
-    return stored || ZotFlowAutoSync.DEFAULT_FOLDER;
+    let folder = Zotero.Prefs.get(ZotFlowAutoSync.PREF_FOLDER, true) || "";
+    if (!folder) folder = ZotFlowAutoSync.DEFAULT_FOLDER;
+    // Always write so the key appears in Config Editor
+    Zotero.Prefs.set(ZotFlowAutoSync.PREF_FOLDER, folder, true);
+    return folder;
   }
 
   // ── Notifier ──────────────────────────────────────────────────────────────
